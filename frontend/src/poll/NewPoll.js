@@ -67,16 +67,17 @@ class NewPoll extends Component {
 
         createPoll(pollData)
         .then(response => {
-            this.props.history.push("/");
+            //this.props.history.push("/poll");
+            this.props.onPollCreated();
         }).catch(error => {
-            if(error.status === 401) {
-                this.props.handleLogout('/login', 'error', 'You have been logged out. Please login create poll.');    
-            } else {
-                notification.error({
-                    message: 'Polling App',
-                    description: error.message || 'Sorry! Something went wrong. Please try again!'
-                });              
-            }
+            // if(error.status === 401) {
+            //     this.props.handleLogout('/login', 'error', 'You have been logged out. Please login create poll.');    
+            // } else {
+            //     notification.error({
+            //         message: 'Polling App',
+            //         description: error.message || 'Sorry! Something went wrong. Please try again!'
+            //     });              
+            // }
         });
     }
 

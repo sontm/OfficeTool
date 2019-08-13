@@ -95,21 +95,7 @@ class Profile extends Component {
                                     </a>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="user-poll-details">    
-                                <Tabs defaultActiveKey="1" 
-                                    animated={false}
-                                    tabBarStyle={tabBarStyle}
-                                    size="large"
-                                    className="profile-tabs">
-                                    <TabPane tab={`${this.state.user.pollCount} Polls`} key="1">
-                                        <PollList username={this.props.match.params.username} type="USER_CREATED_POLLS" />
-                                    </TabPane>
-                                    <TabPane tab={`${this.state.user.voteCount} Votes`}  key="2">
-                                        <PollList username={this.props.match.params.username} type="USER_VOTED_POLLS" />
-                                    </TabPane>
-                                </Tabs>
-                            </div>  
+                            </div> 
                         </div>  
                     ): null               
                 }

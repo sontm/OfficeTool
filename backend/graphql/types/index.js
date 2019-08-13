@@ -4,8 +4,9 @@ import Poll from "./Poll/";
 import User from "./User/";
 import Group from "./Group/";
 import Team from "./Team/";
+import Absence from "./Absence/";
 
-const typeDefs = [Poll, User, Group, Team];
+const typeDefs = [Poll, User, Group, Team, Absence];
 
 // NOTE: 2nd param is optional, and defaults to false
 // Only use if you have defined the same type multiple times in

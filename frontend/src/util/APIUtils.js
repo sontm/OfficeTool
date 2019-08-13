@@ -163,6 +163,134 @@ export function deleteMemberFromTeam(teamID, username) {
     });
 }
 
+export function registerNewAbsence(requestInfo) {
+    console.log("Create Absence Request")
+    console.log(requestInfo)
+    const GRAPHQL_MUTATION = (requestInfo) => `
+    mutation CreateAbsence {
+        createAbsence (request:{
+            fromDate:"${requestInfo.fromDate}",
+            toDate:"${requestInfo.toDate}",
+            fromPeriod:"${requestInfo.fromPeriod}",
+            toPeriod:"${requestInfo.toPeriod}",
+            description:"${requestInfo.description}",
+            username:"${requestInfo.username}",
+            approver:"${requestInfo.approver}"
+        }) 
+        {
+            id
+            fromDate
+            fromPeriod
+            toDate
+            toPeriod
+            description
+            username
+            status
+            feedBack
+            approver
+        }
+    }
+    `;
+
+    if(!localStorage.getItem(ACCESS_TOKEN)) {
+        return Promise.reject("No access token set.");
+    }
+
+    return request({
+        url: API_BASE_URL,
+        method: 'POST',
+        body: JSON.stringify({ query: GRAPHQL_MUTATION(requestInfo) })
+    });
+}
+
+export function updateStatusAbsence(requestInfo) {
+    const GRAPHQL_MUTATION = (requestInfo) => `
+    mutation UpdateAbsenceStatus {
+        updateAbsenceStatus (request:{
+            id:"${requestInfo.id}",
+            status:"${requestInfo.status}",
+            feedBack:"${requestInfo.feedBack}"
+        }) 
+        {
+            id
+            fromDate
+            fromPeriod
+            toDate
+            toPeriod
+            description
+            username
+            status
+            feedBack
+            approver
+        }
+    }
+    `;
+
+    if(!localStorage.getItem(ACCESS_TOKEN)) {
+        return Promise.reject("No access token set.");
+    }
+
+    return request({
+        url: API_BASE_URL,
+        method: 'POST',
+        body: JSON.stringify({ query: GRAPHQL_MUTATION(requestInfo) })
+    });
+}
+
+export function getAllAbsencesOfUser(username) {
+    const GRAPHQL_ALL = (username) => `
+    {
+        absence(username:"${username}") {
+            id
+            fromDate
+            fromPeriod
+            toDate
+            toPeriod
+            description
+            username
+            status
+            feedBack
+            approver
+        }
+    }
+    `;
+    if(!localStorage.getItem(ACCESS_TOKEN)) {
+        return Promise.reject("No access token set.");
+    }
+
+    return request({
+        url: API_BASE_URL,
+        method: 'POST',
+        body: JSON.stringify({ query: GRAPHQL_ALL(username) })
+    });
+}
+export function getAllMyApprovingAbsences(username) {
+    const GRAPHQL_ALL = (username) => `
+    {
+        absenceApprove(approver:"${username}") {
+            id
+            fromDate
+            fromPeriod
+            toDate
+            toPeriod
+            description
+            username
+            status
+            feedBack
+            approver
+        }
+    }
+    `;
+    if(!localStorage.getItem(ACCESS_TOKEN)) {
+        return Promise.reject("No access token set.");
+    }
+
+    return request({
+        url: API_BASE_URL,
+        method: 'POST',
+        body: JSON.stringify({ query: GRAPHQL_ALL(username) })
+    });
+}
 
 // Used GraphQL
 export function getCurrentUser() {
@@ -254,7 +382,6 @@ export function createPoll(pollData) {
             }
         }
     `;
-        console.log("Query: " + GRAPHQL_CREATE_FULLPOLL(pollData, createChoices));
     return request({
         url: API_BASE_URL,
         method: 'POST',

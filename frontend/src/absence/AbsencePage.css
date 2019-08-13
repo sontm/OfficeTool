@@ -1,0 +1,51 @@
+.addmember-container {
+    /* max-width: 350px; */
+    margin: 0 auto;
+    margin-top: 0px;    
+    width: 100%;
+}
+
+.addmember-form-button {
+    margin-top: 0px;
+    width: 20px;
+    height: 20px;
+}
+
+.action-delete {
+    color: #019BF0;
+    cursor: pointer;
+}
+
+.absence-normal-cell {
+    /* border: 0.05px solid grey; */
+    background: white;
+}
+
+.absence-national-holiday-cell {
+    border: 0.05px solid grey;
+    background: #BBBBBB;
+}
+
+.absence-full-cell {
+    border: 0.05px solid grey;
+    background: yellow;
+}
+
+.absence-am-cell {
+    border: 0.05px solid grey;
+    background: cyan;
+}
+
+.absence-pm-cell {
+    border: 0.05px solid grey;
+    background: orange;
+}
+
+.action-approve {
+    color: #019BF0;
+    cursor: pointer;
+}
+.action-reject {
+    color: red;
+    cursor: pointer;
+}

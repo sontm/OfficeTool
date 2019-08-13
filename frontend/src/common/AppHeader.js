@@ -33,8 +33,15 @@ class AppHeader extends Component {
               </Link>
             </Menu.Item>,
 
-            <Menu.Item key="/poll/new">
-            <Link to="/poll/new">
+            <Menu.Item key="/absence">
+              <Link to="/absence">
+              <Icon type="contacts" className="nav-icon"/>
+                <span>Absence</span>
+              </Link>
+            </Menu.Item>,
+
+            <Menu.Item key="/poll">
+            <Link to="/poll">
               <Icon type="bar-chart" className="nav-icon" />
               <span>Poll</span>
             </Link>

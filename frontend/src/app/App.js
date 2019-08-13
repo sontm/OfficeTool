@@ -20,6 +20,8 @@ import LoadingIndicator from '../common/LoadingIndicator';
 import PrivateRoute from '../common/PrivateRoute';
 
 import TeamPage from '../team/TeamPage';
+import AbsencePage from '../absence/AbsencePage'
+import PollPage from "../poll/PollPage"
 
 import { Layout, notification, Menu } from 'antd';
 const { Content, Header, Sider } = Layout;
@@ -125,8 +127,12 @@ class App extends Component {
                 </Route>
                 <PrivateRoute authenticated={this.state.isAuthenticated} path="/poll/new" component={NewPoll} handleLogout={this.handleLogout} currentUser={this.state.currentUser}></PrivateRoute>
 
-                <Route path="/team" component={TeamPage}></Route>
-
+                <Route path="/team" 
+                  render={(props) => <TeamPage currentUser={this.state.currentUser}/>}></Route>
+                <Route path="/absence" 
+                  render={(props) => <AbsencePage currentUser={this.state.currentUser}/>}></Route>
+                <Route path="/poll" 
+                  render={(props) => <PollPage currentUser={this.state.currentUser}/>}></Route>
 
                 <Route component={NotFound}></Route>
               </Switch>

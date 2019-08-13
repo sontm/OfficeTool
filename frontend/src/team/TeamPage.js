@@ -6,6 +6,8 @@ import { Modal, Button, Icon, Collapse, notification, Card,
 import { withRouter } from 'react-router-dom';
 import './TeamPage.css';
 
+import {getMatchTeamIDOfUser} from '../util/Helpers'
+
 import { Table, Divider, Tag } from 'antd';
 
 const { Column, ColumnGroup } = Table;
@@ -50,9 +52,23 @@ class TeamPage extends Component {
         .then( response => {
             console.log("Get All Teams")
             console.log(response)
-            this.setState({
-                teams: response.data.teams
-            });
+
+            var bestMatchTeam = getMatchTeamIDOfUser(response.data.teams,
+                this.props.currentUser.username)
+
+
+            if (bestMatchTeam) {
+                this.setState({
+                    teams: response.data.teams,
+                    fSelectedTeam: bestMatchTeam
+                });
+                this.handleSelectTeamChange(bestMatchTeam);
+            } else {
+                this.setState({
+                    teams: response.data.teams,
+                });
+            }
+
         })
         .catch(error => {
             console.log("Get All Teams error")
@@ -71,6 +87,7 @@ class TeamPage extends Component {
             console.log("Get All Uses error")
         });  
     }
+    
     componentDidMount() {
         this.fetchTeams()
         this.fetchMembers()
@@ -89,6 +106,7 @@ class TeamPage extends Component {
                 curSelectedTeam = element;
             }
         })
+
         this.setState({
             fSelectedTeam: v,
             currentTeam: curSelectedTeam
@@ -326,8 +344,8 @@ class TeamPage extends Component {
                 <Card title="Team" extra={teams}>
 
                 {btnAddMember}
-                
-                <Table dataSource={tblData} pagination={false}
+                <br/>
+                <Table dataSource={tblData} pagination={false} size={"medium"}
                     columns={columns} rowKey="username" scroll={{y: 400 }}/>
                 </Card>
 

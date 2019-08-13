@@ -6,7 +6,7 @@ import { transformPoll } from "../merge";
 export default {
   Query: {
     poll: async (parent, { id }, context, info) => {
-      return await Poll.findOne({ id }).exec();
+      return await Poll.findOne({ "_id": id }).exec();
     },
     polls: async (parent, args, context, info) => {
       const res = await Poll.find({})
@@ -100,40 +100,6 @@ export default {
         throw error;
       }
     },
-    createChoice: async (parent, { choice }, {user}, info) => {
-      if (!user) {
-        throw new AuthenticationError('[GROUP3] You are not authenticated to create choice!')
-      }
-      console.log ("createChoice called")
-      try {
-        // Find Poll by ID
-        const ofPoll = await Poll.findById({id: choice.poll});
-      
-        console.log (">>Found Poll of Choice:")
-
-        let newChoice = {
-          text: choice.text
-        };
-        ofPoll.choices.push(newChoice);
-        console.log(ofPoll)
-        console.log ("<< Found Poll of Choice:")
-        const result = await new Promise((resolve, reject) => {
-          ofPoll.save((err, res) => {
-            err ? reject(err) : resolve(res);
-          });
-        });
-
-        console.log (">>>> Result of saved Poll:")
-        console.log(result);
-        console.log(transformPoll(result));
-        console.log ("<<<< Result of saved Poll:")
-
-        return transformPoll(result);
-      } catch (error) {
-        console.log(error);
-        throw error;
-      }
-    },
     createVote: async (parent, { vote }, {user}, info) => {
       if (!user) {
         throw new AuthenticationError('[GROUP3] You are not authenticated to create vote!')
@@ -141,7 +107,7 @@ export default {
       console.log ("createVote called")
       try {
         // Find Poll by ID
-        const ofPoll = await Poll.findById({id: vote.poll});
+        const ofPoll = await Poll.findById({"_id": vote.poll});
       
         console.log (">>Found Poll of Vote:choiceID:" + vote.choice)
         // FIrst, remove all Vote by that User 

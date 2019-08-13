@@ -1,0 +1,17 @@
+.addmember-container {
+    /* max-width: 350px; */
+    margin: 0 auto;
+    margin-top: 0px;    
+    width: 100%;
+}
+
+.addmember-form-button {
+    margin-top: 0px;
+    width: 20px;
+    height: 20px;
+}
+
+.action-delete {
+    color: #019BF0;
+    cursor: pointer;
+}

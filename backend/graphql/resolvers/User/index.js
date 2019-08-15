@@ -235,13 +235,15 @@ export default {
   },
   Mutation: {
     createUser: async (parent, { user }, context, info) => {
-
       // This will call Constructor of POLL below ?
       const newUser = await new User({
         // field in DB; "poll" is input
         username: user.username,
         password: user.password,
-        passwordBcrypt: await bcrypt.hash(user.password, 10)
+        passwordBcrypt: await bcrypt.hash(user.password, 10),
+        mail: user.mai,
+        fullname: user.fullname,
+        role: "user"
       });
       try {
         console.log(newUser)

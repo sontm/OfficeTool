@@ -6,6 +6,11 @@ import {
   Switch
 } from 'react-router-dom';
 
+// Redux stuff
+import { connect } from 'react-redux';
+import { actGetCurrentUser, USER_LOGIN_OK } from '../redux/actions/UserActions';
+import store from '../redux/store';
+import {useDispatch} from 'react-redux'
 import { getCurrentUser } from '../util/APIUtils';
 import { ACCESS_TOKEN } from '../constants';
 
@@ -27,17 +32,11 @@ import { Layout, notification, Menu } from 'antd';
 const { Content, Header, Sider } = Layout;
 const {SubMenu} = Menu;
 
+store.dispatch(actGetCurrentUser());
+
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      currentUser: null,
-      isAuthenticated: false,
-      isLoading: false
-    }
-    this.handleLogout = this.handleLogout.bind(this);
-    this.loadCurrentUser = this.loadCurrentUser.bind(this);
-    this.handleLogin = this.handleLogin.bind(this);
 
     notification.config({
       placement: 'bottomRight',
@@ -46,93 +45,40 @@ class App extends Component {
     });    
   }
 
-  loadCurrentUser(response = null) {
-    this.setState({
-      isLoading: true
-    });
-    if (response) {
-      this.setState({
-        currentUser: {username: response.data.login.username},
-        isAuthenticated: true,
-        isLoading: false
-      });
-    } else {
-      getCurrentUser()
-      .then(response => {
-        this.setState({
-          currentUser: {username: response.data.me.username},
-          isAuthenticated: true,
-          isLoading: false
-        });
-      }).catch(error => {
-        this.setState({
-          isLoading: false
-        });  
-      });
-    }
-  }
-
   componentDidMount() {
-    this.loadCurrentUser();
-  }
-
-  handleLogout(redirectTo="/", notificationType="success", description="You're successfully logged out.") {
-    localStorage.removeItem(ACCESS_TOKEN);
-
-    this.setState({
-      currentUser: null,
-      isAuthenticated: false
-    });
-
-    this.props.history.push(redirectTo);
-    
-    notification[notificationType]({
-      message: 'Polling App',
-      description: description,
-    });
-  }
-
-  handleLogin(response) {
-    console.log(response)
-    notification.success({
-      message: 'Polling App',
-      description: "You're successfully logged in.",
-    });
-    this.loadCurrentUser(response);
-    this.props.history.push("/");
+    console.log("****** DID MOUNT APP.js")
   }
 
   render() {
-    if(this.state.isLoading) {
+    if(this.props.user.isLoading) {
       return <LoadingIndicator />
     }
     return (
         <Layout style={{ minHeight: '100vh' }}>
-          <AppHeader isAuthenticated={this.state.isAuthenticated} 
-            currentUser={this.state.currentUser} 
-            onLogout={this.handleLogout} />
+          <AppHeader />
           <Layout>
           <Content className="app-content">
             <div className="container">
               <Switch>      
                 <Route exact path="/" 
-                  render={(props) => <PollList isAuthenticated={this.state.isAuthenticated} 
-                      currentUser={this.state.currentUser} handleLogout={this.handleLogout} {...props} />}>
+                  render={(props) => <PollList isAuthenticated={this.props.user.isAuthenticated} 
+                      currentUser={this.props.user.currentUser} handleLogout={this.handleLogout} {...props} />}>
                 </Route>
                 <Route path="/login" 
                   render={(props) => <Login onLogin={this.handleLogin} {...props} />}></Route>
                 <Route path="/signup" component={Signup}></Route>
                 <Route path="/users/:username" 
-                  render={(props) => <Profile isAuthenticated={this.state.isAuthenticated} currentUser={this.state.currentUser} {...props}  />}>
+                  render={(props) => <Profile isAuthenticated={this.props.user.isAuthenticated} currentUser={this.props.user.currentUser} {...props}  />}>
                 </Route>
-                <PrivateRoute authenticated={this.state.isAuthenticated} path="/poll/new" component={NewPoll} handleLogout={this.handleLogout} currentUser={this.state.currentUser}></PrivateRoute>
+                <PrivateRoute authenticated={this.props.user.isAuthenticated} path="/poll/new" component={NewPoll} 
+                  handleLogout={this.handleLogout} currentUser={this.props.user.currentUser}></PrivateRoute>
 
                 <Route path="/team" 
-                  render={(props) => <TeamPage currentUser={this.state.currentUser}/>}></Route>
+                  render={(props) => <TeamPage currentUser={this.props.user.currentUser}/>}></Route>
                 <Route path="/absence" 
-                  render={(props) => <AbsencePage currentUser={this.state.currentUser}/>}></Route>
+                  render={(props) => <AbsencePage currentUser={this.props.user.currentUser}/>}></Route>
                 <Route path="/poll" 
-                  render={(props) => <PollPage currentUser={this.state.currentUser}/>}></Route>
+                  render={(props) => <PollPage currentUser={this.props.user.currentUser}/>}></Route>
 
                 <Route component={NotFound}></Route>
               </Switch>
@@ -144,4 +90,15 @@ class App extends Component {
   }
 }
 
-export default withRouter(App);
+const mapStateToProps = (state) => ({
+  user: state.user
+});
+
+const mapActionsToProps = {
+  actGetCurrentUser
+};
+
+export default withRouter(connect(
+  mapStateToProps,
+  mapActionsToProps
+)(App));

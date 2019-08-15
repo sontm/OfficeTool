@@ -6,6 +6,8 @@ export default `
     mail: String
     fullname: String
     role: String
+    passwordBcrypt: String
+    password: String
   }
 
   type Query {
@@ -23,5 +25,7 @@ export default `
   input SignUpRequest {
     username: String!
     password: String!
+    mail: String
+    fullname: String
   }
 `;

@@ -3,6 +3,9 @@ import {
     Link,
     withRouter
 } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { actLogout } from '../redux/actions/UserActions';
+
 import './AppHeader.css';
 import pollIcon from '../poll.svg';
 import { Layout, Menu, Dropdown, Icon } from 'antd';
@@ -18,13 +21,13 @@ class AppHeader extends Component {
 
     handleMenuClick({ key }) {
       if(key === "logout") {
-        this.props.onLogout();
+        this.props.actLogout(this.props.history);
       }
     }
 
     render() {
         let menuItems;
-        if(this.props.currentUser) {
+        if(this.props.user.currentUser) {
           menuItems = [
             <Menu.Item key="/team">
               <Link to="/team">
@@ -51,12 +54,12 @@ class AppHeader extends Component {
               title={
                 <span style={{paddingLeft: "0px"}}>
                   <Icon type="user" className="nav-icon" />
-                 <span>@{this.props.currentUser.username}</span>
+                 <span>@{this.props.user.currentUser.username}</span>
                 </span>
               }
             >
               <Menu.Item key="profile">
-                <Link to={`/users/${this.props.currentUser.username}`}>Profile</Link>
+                <Link to={`/users/${this.props.user.currentUser.username}`}>Profile</Link>
               </Menu.Item>
               <Menu.Item key="logout">
                 Logout
@@ -117,5 +120,13 @@ function ProfileDropdownMenu(props) {
   // );
 }
 
+const mapStateToProps = (state) => ({
+  user: state.user
+});
+const mapActionsToProps = {
+  actLogout
+};
 
-export default withRouter(AppHeader);
+export default withRouter(connect(
+  mapStateToProps,mapActionsToProps
+)(AppHeader));

@@ -10,20 +10,20 @@ ObjectID.prototype.valueOf = function() {
 const UserSchema = new Schema({
   ldapID: {
     type: Number,
-    required: true
+    required: false
   },
   username: {
     type: String,
     required: true
   },
-  // password: {
-  //   type: String,
-  //   required: true
-  // },
-  // passwordBcrypt: {
-  //   type: String,
-  //   required: true
-  // },
+  password: {
+    type: String,
+    required: false
+  },
+  passwordBcrypt: {
+    type: String,
+    required: false
+  },
   mail: {
     type: String,
     required: false
@@ -33,7 +33,7 @@ const UserSchema = new Schema({
     required: false
   },
   role: {
-    type: String,
+    type: String, // user | admin
     required: false
   }
 });

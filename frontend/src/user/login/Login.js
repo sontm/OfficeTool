@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { login } from '../../util/APIUtils';
 import './Login.css';
-import { Link } from 'react-router-dom';
-import { ACCESS_TOKEN } from '../../constants';
+import { Link,withRouter } from 'react-router-dom';
+
+// Redux stuff
+import { connect } from 'react-redux';
+import { actLogin } from '../../redux/actions/UserActions';
 
 import { Form, Input, Button, Icon, notification } from 'antd';
 const FormItem = Form.Item;
@@ -14,7 +16,7 @@ class Login extends Component {
             <div className="login-container">
                 <h1 className="page-title">Login</h1>
                 <div className="login-content">
-                    <AntWrappedLoginForm onLogin={this.props.onLogin} />
+                    <AntWrappedLoginForm onLogin={this.props.onLogin} {...this.props}/>
                 </div>
             </div>
         );
@@ -31,34 +33,7 @@ class LoginForm extends Component {
         event.preventDefault();   
         this.props.form.validateFields((err, values) => {
             if (!err) {
-                const loginRequest = Object.assign({}, values);
-                login(loginRequest)
-                .then(response => {
-                    localStorage.setItem(ACCESS_TOKEN, response.data.login.jwt);
-                    
-                    if (!response.data || !response.data.login) {
-                        // Failed Login
-                        notification.error({
-                            message: 'Polling App',
-                            description: 'Your Username or Password is incorrect. Please try again!'
-                        });  
-                    } else {
-                        console.log("Logined OK")
-                        this.props.onLogin(response);
-                    }
-                }).catch(error => {
-                    if(error.status === 401) {
-                        notification.error({
-                            message: 'Polling App',
-                            description: 'Your Username or Password is incorrect. Please try again!'
-                        });                    
-                    } else {
-                        notification.error({
-                            message: 'Polling App',
-                            description: error.message || 'Sorry! Something went wrong. Please try again!'
-                        });                                            
-                    }
-                });
+                this.props.actLogin(values, this.props.history)
             }
         });
     }
@@ -99,5 +74,15 @@ class LoginForm extends Component {
     }
 }
 
-
-export default Login;
+const mapStateToProps = (state) => ({
+    user: state.user
+  });
+  
+const mapActionsToProps = {
+    actLogin
+};
+  
+  export default withRouter(connect(
+    mapStateToProps,
+    mapActionsToProps
+  )(Login));

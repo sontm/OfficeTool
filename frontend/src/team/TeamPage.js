@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
-import { getAllUser, getAllTeam, addMemberToTeam, deleteMemberFromTeam } from '../util/APIUtils';
+
 import LoadingIndicator  from '../common/LoadingIndicator';
 import { Modal, Button, Icon, Collapse, notification, Card, 
     Select, Form, Radio, InputNumber} from 'antd';
-import { withRouter } from 'react-router-dom';
-import './TeamPage.css';
 
-import {getMatchTeamIDOfUser} from '../util/Helpers'
+import { withRouter } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { actTeamGet,actTeamGetMembers, actTeamAddMemberToTeam, actTeamHandleSelectTeam } from '../redux/actions/TeamActions';
+
+import './TeamPage.css';
 
 import { Table, Divider, Tag } from 'antd';
 
@@ -15,15 +17,23 @@ const { Column, ColumnGroup } = Table;
 const { Option } = Select;
 const FormItem = Form.Item;
 const { Panel } = Collapse;
+
+function mGetSelectedTeam(teams, currentTeamID) {
+    if (teams && teams.length > 0) {
+        for (var i = 0; i < teams.length; i++) {
+            let element = teams[i];
+            if (element.id == currentTeamID) {
+                return element;
+            }
+        }
+    }
+    return null;
+}
 class TeamPage extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            teams: [],
-            members: [],
-            currentTeam:null,
             fMemberRole: "member",
-            fSelectedTeam: "",
             fSelectedMember:"",
             fPercent: 100,
             collapseActiveKey: 0,
@@ -48,51 +58,23 @@ class TeamPage extends Component {
         this.handleCancelAddMember = this.handleCancelAddMember.bind(this)
     }
     fetchTeams() {
-        getAllTeam()
-        .then( response => {
-            console.log("Get All Teams")
-            console.log(response)
-
-            var bestMatchTeam = getMatchTeamIDOfUser(response.data.teams,
-                this.props.currentUser.username)
-
-
-            if (bestMatchTeam) {
-                this.setState({
-                    teams: response.data.teams,
-                    fSelectedTeam: bestMatchTeam
-                });
-                this.handleSelectTeamChange(bestMatchTeam);
-            } else {
-                this.setState({
-                    teams: response.data.teams,
-                });
-            }
-
-        })
-        .catch(error => {
-            console.log("Get All Teams error")
-        }); 
+        this.props.actTeamGet();
     }
     fetchMembers() {
-        getAllUser()
-        .then( response => {
-            console.log("Get All Users")
-            console.log(response)
-            this.setState({
-                members: response.data.users
-            });
-        })
-        .catch(error => {
-            console.log("Get All Uses error")
-        });  
+        this.props.actTeamGetMembers();  
     }
     
     componentDidMount() {
+        console.log("****** DID MOUNT TEAMPAGE.js")
         this.fetchTeams()
         this.fetchMembers()
     }
-
+    componentDidUpdate() {
+        // if (this.props.user.currentUser.username && !this.props.team.selectedTeamID) {
+        //     console.log("******     Fucking TRY DID UPDATE TEAMPAGE.js:" + this.props.team.selectedTeamID)
+        //     this.props.actTeamHandleSelectTeam(null, this.props.user.currentUser.username)
+        // }
+    }
     handleMemberRoleChange(e) {
         this.setState({
             fMemberRole: e.target.value,
@@ -100,17 +82,7 @@ class TeamPage extends Component {
     }
     handleSelectTeamChange(v) {
         console.log("Select team:" + v)
-        let curSelectedTeam;
-        this.state.teams.forEach(element => {
-            if (element.id == v) {
-                curSelectedTeam = element;
-            }
-        })
-
-        this.setState({
-            fSelectedTeam: v,
-            currentTeam: curSelectedTeam
-        });
+        this.props.actTeamHandleSelectTeam(v, null)
     }
     handleSelectMemberChange(v) {
         console.log("Select member:" + v)
@@ -129,38 +101,12 @@ class TeamPage extends Component {
         })
     }
     handleOKEdit(e) {
-        // Server processing
-        addMemberToTeam(this.state.fSelectedTeam, this.state.fSelectedMember,
-            this.state.fPercent, this.state.fMemberRole)
-        .then( response => {
-            console.log("Edit member DONE")
-            console.log(response.data.addMemberToTeam)
-
-            // Update Array of Team with new information
-            let newTeamInfo = response.data.addMemberToTeam;
-            let newTeams = [];
-            this.state.teams.forEach(element => {
-                if (element.id == newTeamInfo.id) {
-                    newTeams.push(newTeamInfo);
-                } else {
-                    newTeams.push(element);
-                }
-            })
-
-            this.setState({
-                fMemberRole: "member",
-                fSelectedMember:"",
-                fPercent: 100,
-                currentTeam: newTeamInfo,
-                teams: newTeams
-                //collapseActiveKey: 0
-            })
-
-        }).catch(err => {
-            console.log("Add member Error")
-            console.log(err)
-        });
-        
+        this.props.actTeamAddMemberToTeam({
+            fSelectedTeam: this.props.team.selectedTeamID,
+            fSelectedMember: this.state.fSelectedMember,
+            fPercent: this.state.fPercent,
+            fMemberRole: this.state.fMemberRole
+        })
         this.setState({
             isOpenModalEdit: false
         })
@@ -202,70 +148,48 @@ class TeamPage extends Component {
     }
     handleRemoveMember(record, e) {
         e.preventDefault();
-        console.log("Remove member:" + record.username + " from:" + this.state.fSelectedTeam)
-        deleteMemberFromTeam(this.state.fSelectedTeam, record.username)
-        .then( response => {
-            console.log("Delete member DONE")
-            console.log(response.data.deleteMemberFromTeam)
+        console.log("Remove member:" + record.username + " from:" + this.props.team.selectedTeamID)
+        // deleteMemberFromTeam(this.state.fSelectedTeam, record.username)
+        // .then( response => {
+        //     console.log("Delete member DONE")
+        //     console.log(response.data.deleteMemberFromTeam)
 
-            // Update Array of Team with new information
-            let newTeamInfo = response.data.deleteMemberFromTeam;
-            let newTeams = [];
-            this.state.teams.forEach(element => {
-                if (element.id == newTeamInfo.id) {
-                    newTeams.push(newTeamInfo);
-                } else {
-                    newTeams.push(element);
-                }
-            })
+        //     // Update Array of Team with new information
+        //     let newTeamInfo = response.data.deleteMemberFromTeam;
+        //     let newTeams = [];
+        //     this.state.teams.forEach(element => {
+        //         if (element.id == newTeamInfo.id) {
+        //             newTeams.push(newTeamInfo);
+        //         } else {
+        //             newTeams.push(element);
+        //         }
+        //     })
 
-            this.setState({
-                fMemberRole: "member",
-                fSelectedMember:"",
-                fPercent: 100,
-                currentTeam: newTeamInfo,
-                teams: newTeams
-                //collapseActiveKey: 0
-            })
+        //     this.setState({
+        //         fMemberRole: "member",
+        //         fSelectedMember:"",
+        //         fPercent: 100,
+        //         currentTeam: newTeamInfo,
+        //         teams: newTeams
+        //         //collapseActiveKey: 0
+        //     })
 
-        }).catch(err => {
-            console.log("Add member Error")
-            console.log(err)
-        });
+        // }).catch(err => {
+        //     console.log("Add member Error")
+        //     console.log(err)
+        // });
     }
     handleSubmit(event) {
         event.preventDefault();
-        addMemberToTeam(this.state.fSelectedTeam, this.state.fSelectedMember,
-            this.state.fPercent, this.state.fMemberRole)
-        .then( response => {
-            console.log("Add member DONE")
-            console.log(response.data.addMemberToTeam)
-
-            // Update Array of Team with new information
-            let newTeamInfo = response.data.addMemberToTeam;
-            let newTeams = [];
-            this.state.teams.forEach(element => {
-                if (element.id == newTeamInfo.id) {
-                    newTeams.push(newTeamInfo);
-                } else {
-                    newTeams.push(element);
-                }
-            })
-
-            this.setState({
-                fMemberRole: "member",
-                fSelectedMember:"",
-                fPercent: 100,
-                currentTeam: newTeamInfo,
-                teams: newTeams,
-                isOpenModalAdd: false,
-                //collapseActiveKey: 0
-            })
-
-        }).catch(err => {
-            console.log("Add member Error")
-            console.log(err)
-        });
+        this.props.actTeamAddMemberToTeam({
+            fSelectedTeam: this.props.team.selectedTeamID,
+            fSelectedMember: this.state.fSelectedMember,
+            fPercent: this.state.fPercent,
+            fMemberRole: this.state.fMemberRole
+        })
+        this.setState({
+            isOpenModalAdd: false
+        })
     }
     render() {
         console.log("Rendering")
@@ -274,10 +198,11 @@ class TeamPage extends Component {
 
         let tblData = [];
         let columns = [];
-        if (this.state.currentTeam) {
-            console.log(this.state.currentTeam.members)
-            if (this.state.currentTeam.members && this.state.currentTeam.members.length > 0) {
-                tblData = this.state.currentTeam.members;
+        let currentSelectTeam = mGetSelectedTeam(this.props.team.teams, this.props.team.selectedTeamID);
+        if (currentSelectTeam) {
+            console.log(currentSelectTeam.members)
+            if (currentSelectTeam.members && currentSelectTeam.members.length > 0) {
+                tblData = currentSelectTeam.members;
 
                 columns = [
                     {
@@ -332,7 +257,7 @@ class TeamPage extends Component {
         }
 
         var btnAddMember;
-        if (this.state.currentTeam) {
+        if (currentSelectTeam) {
             btnAddMember = 
                 <Button type="primary" 
                     size="medium" onClick={this.handleAddMemberOpen}>
@@ -372,6 +297,8 @@ class TeamPage extends Component {
     renderAddMember() {
         const members = this.renderMemberList();
         const roles = this.renderMemberRole();
+
+        let currentSelectedTeam = mGetSelectedTeam(this.props.team.teams, this.props.team.selectedTeamID);
         return(
             <Form layout={"horizontal"}  className="addmember-container">
                 <FormItem >
@@ -388,8 +315,8 @@ class TeamPage extends Component {
                 <FormItem>
                     To Team: 
                     <span style={{fontWeight:"bold"}}>
-                        { (this.state.currentTeam && this.state.currentTeam.name) ? 
-                        this.state.currentTeam.name : "NA"}
+                        { (currentSelectedTeam && currentSelectedTeam.name) ? 
+                        currentSelectedTeam.name : "NA"}
                                 </span>
                 </FormItem>
             </Form>
@@ -414,46 +341,50 @@ class TeamPage extends Component {
         )
     }
     renderTeamsList() {
-        const views = [];
-        this.state.teams.forEach((item, idx) => {
-            views.push(
-            <Option key={item.id} value={item.id}>
-                {item.name}
-            </Option>)            
-        });
-        return (
-        <Select style={{width: "300px"}}
-            optionFilterProp="children"
-            showSearch
-            onChange={this.handleSelectTeamChange}
-            placeholder="To Team"
-            value={this.state.fSelectedTeam}
-            >
-            {views}
-        </Select>
-        );
+        if (this.props.team && this.props.team.teams) {
+            const views = [];
+            this.props.team.teams.forEach((item, idx) => {
+                views.push(
+                <Option key={item.id} value={item.id}>
+                    {item.name}
+                </Option>)            
+            });
+            return (
+            <Select style={{width: "300px"}}
+                optionFilterProp="children"
+                showSearch
+                onChange={this.handleSelectTeamChange}
+                placeholder="To Team"
+                value={this.props.team.selectedTeamID}
+                >
+                {views}
+            </Select>
+            );
+        }
     }
 
     renderMemberList() {
-        const views = [];
-        this.state.members.forEach((item, idx) => {
-            views.push(
-            <Option key={item.id} value={item.username}>
-                {item.username}
-            </Option>)            
-        });
-        return (
-        <Select
-            showSearch
-            style={{width: "150px"}}
-            onChange={this.handleSelectMemberChange}
-            optionFilterProp="children"
-            placeholder="Select Member"
-            value={this.state.fSelectedMember}
-            >
-            {views}
-        </Select>
-        );
+        if (this.props.team && this.props.team.members) {
+            const views = [];
+            this.props.team.members.forEach((item, idx) => {
+                views.push(
+                <Option key={item.id} value={item.username}>
+                    {item.username}
+                </Option>)            
+            });
+            return (
+            <Select
+                showSearch
+                style={{width: "150px"}}
+                onChange={this.handleSelectMemberChange}
+                optionFilterProp="children"
+                placeholder="Select Member"
+                value={this.state.fSelectedMember}
+                >
+                {views}
+            </Select>
+            );
+        }
     }
 
     renderMemberRole() {
@@ -466,4 +397,16 @@ class TeamPage extends Component {
     }
 }
 
-export default withRouter(TeamPage);
+const mapStateToProps = (state) => ({
+    user: state.user,
+    team: state.team, // {teams, members}
+});
+const mapActionsToProps = {
+    actTeamGet,
+    actTeamGetMembers,
+    actTeamAddMemberToTeam,
+    actTeamHandleSelectTeam
+};
+
+export default withRouter(connect(mapStateToProps,mapActionsToProps)(TeamPage));
+

@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
-import { getAllUser, getAllAbsence, registerNewAbsence, getAllAbsencesOfUser,
-    getAllTeam, getAllMyApprovingAbsences, updateStatusAbsence } from '../util/APIUtils';
 import LoadingIndicator  from '../common/LoadingIndicator';
 import { Alert, DatePicker, Modal, Button, Icon, Collapse, notification, Card, 
     Select, Form, Radio, Input} from 'antd';
 import { withRouter } from 'react-router-dom';
+import { connect } from 'react-redux';
+import {  actAbsenceGetOfMembers, actAbsenceGetMine,actAbsenceGetMyApproving,
+    actRegisterNewAbsence, actAbsenceUpdateStatus, actAbsenceDelete} from '../redux/actions/AbsenceActions';
+import { actTeamGet,actTeamGetMembers, actTeamAddMemberToTeam, actTeamHandleSelectTeam,
+    actTeamDeleteMember } from '../redux/actions/TeamActions';
+
 import './AbsencePage.css';
 
 import {getMatchTeamIDOfUser, getMatchLeaderOfUser} from '../util/Helpers'
@@ -84,10 +88,6 @@ class AbsencePage extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            teams:[],
-            absences: {}, // absencses in selected Team
-            myAbsences:[],
-            myApprovingAbsences: [], // ABsences which I have to approve
             matchedApprover:"", // People which responsibility for Approve Absence
 
             fFromDate: null,
@@ -105,10 +105,6 @@ class AbsencePage extends Component {
             fSelectedMonth: moment(new Date()),
             currentTeam: null
         };
-        this.fetchAbsences = this.fetchAbsences.bind(this);
-        this.fetchApprovingAbsences = this.fetchApprovingAbsences.bind(this);
-        this.fetchTeams = this.fetchTeams.bind(this);
-
         this.handleSelectTeamChange = this.handleSelectTeamChange.bind(this);
         this.handleSelectMonth = this.handleSelectMonth.bind(this);
 
@@ -123,6 +119,8 @@ class AbsencePage extends Component {
         this.handleChangeFromDate = this.handleChangeFromDate.bind(this);
         this.handleChangeToDate = this.handleChangeToDate.bind(this);
 
+        this.handleDeleteAbsence = this.handleDeleteAbsence.bind(this)
+
         this.renderTeamAbsences = this.renderTeamAbsences.bind(this)
 
         this.clickApproveAbsence = this.clickApproveAbsence.bind(this)
@@ -131,73 +129,17 @@ class AbsencePage extends Component {
         this.clickOkRejectModel = this.clickOkRejectModel.bind(this)
         this.clickCancelRejectModel = this.clickCancelRejectModel.bind(this)
     }
-    fetchTeams() {
-        getAllTeam()
-        .then( response => {
-            console.log("Get All Teams")
-            console.log(response)
-            var bestMatchTeam = getMatchTeamIDOfUser(response.data.teams,
-                this.props.currentUser.username)
-            
-            var bestMatchLeader = getMatchLeaderOfUser(response.data.teams,
-                this.props.currentUser.username);
 
-            if (bestMatchTeam) {
-                this.setState({
-                    teams: response.data.teams,
-                    fSelectedTeam: bestMatchTeam,
-                    matchedApprover: bestMatchLeader
-                });
-                this.handleSelectTeamChange(bestMatchTeam);
-            } else {
-                this.setState({
-                    teams: response.data.teams,
-                    matchedApprover: bestMatchLeader
-                });
-            }
-
-        })
-        .catch(error => {
-            console.log("Get All Teams error")
-        }); 
-    }
-    fetchAbsences() {
-        if (this.props.currentUser) {
-            getAllAbsencesOfUser(this.props.currentUser.username)
-            .then( response => {
-                console.log("All Absences:")
-                console.log(response.data)
-
-                this.setState({
-                    myAbsences: [...response.data.absence]
-                })
-            }).catch(err => {
-                console.log("All Absence Error")
-                console.log(err)
-            });
-        }
-    }
-    fetchApprovingAbsences() {
-        if (this.props.currentUser) {
-            getAllMyApprovingAbsences(this.props.currentUser.username)
-            .then( response => {
-                console.log("All Approving Absences:")
-                console.log(response.data)
-
-                this.setState({
-                    myApprovingAbsences: [...response.data.absenceApprove]
-                })
-            }).catch(err => {
-                console.log("All Approving Absence Error")
-                console.log(err)
-            });
-        }
-    }
-    
     componentDidMount() {
-        this.fetchApprovingAbsences()
-        this.fetchAbsences()
-        this.fetchTeams()
+        if (this.props.team.teams.length <= 0 ) {
+            this.props.actTeamGet();
+        }
+        if (this.props.user && this.props.user.currentUser) {
+            this.props.actAbsenceGetMyApproving(this.props.user.currentUser.username)
+        }
+        if (this.props.user && this.props.user.currentUser) {
+            this.props.actAbsenceGetMine(this.props.user.currentUser.username)
+        }
     }
 
     // --------------------Form-----------------
@@ -237,7 +179,7 @@ class AbsencePage extends Component {
     }
     handleSelectTeamChange(v) {
         let curSelectedTeam;
-        this.state.teams.forEach(element => {
+        this.props.team.teams.forEach(element => {
             if (element.id == v) {
                 curSelectedTeam = element;
             }
@@ -247,23 +189,7 @@ class AbsencePage extends Component {
             currentTeam: curSelectedTeam
         });
 
-        var newAbsences = {};
-        curSelectedTeam.members.forEach(element => {
-            // Fetch all Absences of Member in Team
-            getAllAbsencesOfUser(element.username)
-            .then( response => {
-                newAbsences["" + element.username] = [...response.data.absence];
-
-                this.setState({
-                    absences: newAbsences
-                })
-
-            }).catch(err => {
-                //console.log("All Absence Error")
-               // console.log(err)
-            });
-        })
-        
+        this.props.actAbsenceGetOfMembers({members:curSelectedTeam.members, status:"APPROVED"})
         
     }
 
@@ -282,6 +208,8 @@ class AbsencePage extends Component {
     
     handleSubmitNewAbsence(event) {
         event.preventDefault();
+        let myApprover = getMatchLeaderOfUser(this.props.team.teams, 
+            (this.props.user && this.props.user.currentUser) ? this.props.user.currentUser.username : null);
         let request = {
             fromDate: this.state.fFromDate,
             fromPeriod: this.state.fFromPeriod,
@@ -289,52 +217,31 @@ class AbsencePage extends Component {
             toPeriod: this.state.fToPeriod,
             description: this.state.fDescription,
             username: this.props.currentUser.username,
-            approver: this.state.matchedApprover
+            approver: myApprover
         };
 
-        registerNewAbsence(request)
-        .then( response => {
-            console.log("Add Absence DONE")
-            console.log(response.data)
-        }).catch(err => {
-            console.log("Add Absence Error")
-            console.log(err)
-        });
+        this.props.actRegisterNewAbsence(request);
 
         this.setState({
             isOpenModalAdd: false,
         })
         
     }
-    
+    handleDeleteAbsence(record) {
+        console.log(record)
+        this.props.actAbsenceDelete(record.id)
+    }
     // -----------------------------Approving
     clickApproveAbsence(record, e) {
         e.preventDefault();
         console.log("APprove:" + record.id)
-        updateStatusAbsence({id: record.id, status: "APPROVED", feedBack: ""})
-        .then( response => {
-            console.log("Approve DONE")
-            console.log(response.data.updateAbsenceStatus)
-
-            // Update Array with new information
-            let newInfo = response.data.updateAbsenceStatus;
-            let newAbsences = [];
-            this.state.myApprovingAbsences.forEach(element => {
-                if (element.id == newInfo.id) {
-                    // Not Push to List this Absence
-                    //newAbsences.push(newInfo);
-                } else {
-                    newAbsences.push(element);
-                }
-            })
-            this.setState({
-                myApprovingAbsences: newAbsences
-            })
-
-        }).catch(err => {
-            console.log("Approve Error")
-            console.log(err)
-        });
+        this.props.actAbsenceUpdateStatus({id: record.id, status: "APPROVED", feedBack: ""},
+            () => {
+                console.log("CALL BACK OF APPROVe DONE")
+                // We need to reload Team absences
+                this.props.actAbsenceGetOfMembers({members:this.state.currentTeam.members, status:"APPROVED"})
+            }
+        )
     }
 
     clickRejectAbsence (record, e) {
@@ -348,36 +255,14 @@ class AbsencePage extends Component {
     clickOkRejectModel(e) {
         console.log("Reject with Reason:" + this.state.fRejectReason 
             + ",id:" + this.state.fRejectID)
+
+        this.props.actAbsenceUpdateStatus({id: this.state.fRejectID, status: "REJECT", 
+            feedBack: this.state.fRejectReason})
         
-        updateStatusAbsence({id: this.state.fRejectID, status: "REJECT", feedBack: this.state.fRejectReason})
-        .then( response => {
-            console.log("REJECT DONE")
-            console.log(response.data.updateAbsenceStatus)
-
-            // Update Array with new information
-            let newInfo = response.data.updateAbsenceStatus;
-            let newAbsences = [];
-            this.state.myApprovingAbsences.forEach(element => {
-                if (element.id == newInfo.id) {
-                    // Not Push to List this Absence
-                    //newAbsences.push(newInfo);
-                } else {
-                    newAbsences.push(element);
-                }
-            })
-            this.setState({
-                myApprovingAbsences: newAbsences,
-                isOpenModalReject: false,
-                fRejectID: ""
-            })
-
-        }).catch(err => {
-            console.log("REJECT Error")
-            this.setState({
-                isOpenModalReject: false,
-                fRejectID: ""
-            })
-        });
+        this.setState({
+            isOpenModalReject: false,
+            fRejectID:""
+        })
     }
     clickCancelRejectModel(e) {
         this.setState({
@@ -401,7 +286,8 @@ class AbsencePage extends Component {
         //         labelCol: { span: 6 },
         //         wrapperCol: { span: 12 },
         //     };
-
+        let myApprover = getMatchLeaderOfUser(this.props.team.teams, 
+            (this.props.user && this.props.user.currentUser) ? this.props.user.currentUser.username : null);
         const fromPeriod = 
             <Radio.Group onChange={this.handleChangeFromPeriod} 
                     value={this.state.fFromPeriod}>
@@ -436,7 +322,7 @@ class AbsencePage extends Component {
                     onChange={(event) => this.handleChangeDescription(event)} />  
                 <br/><br/>
                 <FormItem {...formItemLayout}>
-                    <span style={{fontWeight:"bold", color:"blue"}}>Approver: {this.state.matchedApprover} </span>
+                    <span style={{fontWeight:"bold", color:"blue"}}>Approver: {myApprover} </span>
                 </FormItem>  
             </Form>
         )
@@ -444,7 +330,7 @@ class AbsencePage extends Component {
 
     renderTeamsList() {
         const views = [];
-        this.state.teams.forEach((item, idx) => {
+        this.props.team.teams.forEach((item, idx) => {
             views.push(
             <Option key={item.id} value={item.id}>
                 {item.name}
@@ -466,10 +352,10 @@ class AbsencePage extends Component {
     renderMyApprovingAbsences() {
         let tblData = [];
         let columns = [];
-        if (this.state.myApprovingAbsences) {
-            if (this.state.myApprovingAbsences.length > 0) {
+        if (this.props.absence.myApprovingAbsences) {
+            if (this.props.absence.myApprovingAbsences.length > 0) {
                 // Filter the Date he if needed
-                this.state.myApprovingAbsences.forEach(element => {
+                this.props.absence.myApprovingAbsences.forEach(element => {
                     tblData.push ({
                         fromDate: (new Date(element.fromDate)).toLocaleDateString("ja-JP") 
                             + "," + element.fromPeriod,
@@ -510,11 +396,8 @@ class AbsencePage extends Component {
                         title: 'Approve',
                         key: 'x',
                         render: (text, record) => (
-                            <span
-                                className="action-approve"
-                                onClick={(e) => { this.clickApproveAbsence(record, e); }}>
-                              OK
-                            </span>
+                            <Button type="primary" size="small"
+                                onClick={(e) => { this.clickApproveAbsence(record, e); }}>Accept</Button>
                         ),
                         width: 100,
                     },
@@ -522,11 +405,8 @@ class AbsencePage extends Component {
                         title: 'Reject',
                         key: 'e',
                         render: (text, record) => (
-                            <span
-                                className="action-reject"
-                                onClick={(e) => { this.clickRejectAbsence(record, e); }}>
-                              REJECT
-                            </span>
+                            <Button type="danger" size="small"
+                            onClick={(e) => { this.clickRejectAbsence(record, e); }}>REJECT</Button>
                         ),
                         width: 100,
                     },
@@ -543,10 +423,10 @@ class AbsencePage extends Component {
     renderMyAbsences() {
         let tblData = [];
         let columns = [];
-        if (this.state.myAbsences) {
-            if (this.state.myAbsences.length > 0) {
+        if (this.props.absence && this.props.absence.myAbsences) {
+            if (this.props.absence.myAbsences.length > 0) {
                 // Filter the Date he if needed
-                this.state.myAbsences.forEach(element => {
+                this.props.absence.myAbsences.forEach(element => {
                     tblData.push ({
                         fromDate: (new Date(element.fromDate)).toLocaleDateString("ja-JP") 
                             + "," + element.fromPeriod,
@@ -591,6 +471,22 @@ class AbsencePage extends Component {
                     {
                         title: 'FeedBack',
                         dataIndex: 'feedBack',
+                    },
+                    {
+                        title: 'Action',
+                        key: 'x',
+                        render: (text, record) => {
+                            if (record.status =="CONFIRMING") {
+                                return {
+                                children: 
+                                    <Button type="danger" size="small"
+                                        onClick={(e) => { this.handleDeleteAbsence(record, e); }}>Delete</Button>
+                                }
+                            } else {
+                                return "";
+                            }
+                        },
+                        width: 100,
                     },
                 ];
             }
@@ -642,7 +538,7 @@ class AbsencePage extends Component {
                 // 1: FUll Day
                 // 2: AM absence
                 // 3: PM absence
-                var allAbsences = this.state.absences;
+                var allAbsences = (this.props.absence && this.props.absence.absences)?this.props.absence.absences: [];
                 for (var i = 0; i < this.state.currentTeam.members.length; i++) {
                     var element = this.state.currentTeam.members[i];
                     var rowData = {};
@@ -710,7 +606,7 @@ class AbsencePage extends Component {
     render() {
         console.log("Rendering Absence Page")
         var renderApproving = "";
-        if (this.state.myApprovingAbsences && this.state.myApprovingAbsences.length > 0) {
+        if (this.props.absence && this.props.absence.myApprovingAbsences && this.props.absence.myApprovingAbsences.length > 0) {
             renderApproving = 
                 <React.Fragment>
                 <Card title={"Absence Approving"}>
@@ -726,8 +622,6 @@ class AbsencePage extends Component {
             <React.Fragment>
                 {renderApproving}
 
-                { (this.state.myAbsences && this.state.myAbsences.length > 0) ?
-                <React.Fragment>
                 <Collapse defaultActiveKey={['1']}>
                 <Panel header="My Absences" key="1">
                     <Button type="primary" 
@@ -739,8 +633,6 @@ class AbsencePage extends Component {
                 </Panel>
                 </Collapse> 
                 <br/>
-                </React.Fragment> : ""
-                }
                 
                 <Collapse defaultActiveKey={['2']}>
                 <Panel header="Team Absences" key="2">
@@ -783,4 +675,14 @@ class AbsencePage extends Component {
     }
 }
 
-export default withRouter(AbsencePage);
+const mapStateToProps = (state) => ({
+    user: state.user,
+    team: state.team, // {teams, members}
+    absence: state.absence
+});
+const mapActionsToProps = {
+    actAbsenceGetOfMembers, actAbsenceGetMine,actAbsenceGetMyApproving,actRegisterNewAbsence,
+    actTeamGet, actAbsenceUpdateStatus, actAbsenceDelete
+};
+
+export default withRouter(connect(mapStateToProps,mapActionsToProps)(AbsencePage));

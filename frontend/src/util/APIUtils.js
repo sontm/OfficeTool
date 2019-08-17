@@ -237,8 +237,38 @@ export function updateStatusAbsence(requestInfo) {
     });
 }
 
-export function getAllAbsencesOfUser(username) {
-    const GRAPHQL_ALL = (username) => `
+export function deleteAbsence(id) {
+    const GRAPHQL_MUTATION = (id) => `
+    mutation UpdateAbsenceStatus {
+        deleteAbsence (id:"${id}") 
+        {
+            id
+            fromDate
+            fromPeriod
+            toDate
+            toPeriod
+            description
+            username
+            status
+            feedBack
+            approver
+        }
+    }
+    `;
+
+    if(!localStorage.getItem(ACCESS_TOKEN)) {
+        return Promise.reject("No access token set.");
+    }
+
+    return request({
+        url: API_BASE_URL,
+        method: 'POST',
+        body: JSON.stringify({ query: GRAPHQL_MUTATION(id) })
+    });
+}
+
+export function getAllAbsencesOfUser(username, status) {
+    let GRAPHQL_ALL = (username, status) => `
     {
         absence(username:"${username}") {
             id
@@ -254,6 +284,24 @@ export function getAllAbsencesOfUser(username) {
         }
     }
     `;
+    if (status) {
+        GRAPHQL_ALL = (username, status) => `
+        {
+            absence(username:"${username}", status:"${status}") {
+                id
+                fromDate
+                fromPeriod
+                toDate
+                toPeriod
+                description
+                username
+                status
+                feedBack
+                approver
+            }
+        }
+        `;
+    }
     if(!localStorage.getItem(ACCESS_TOKEN)) {
         return Promise.reject("No access token set.");
     }
@@ -261,7 +309,7 @@ export function getAllAbsencesOfUser(username) {
     return request({
         url: API_BASE_URL,
         method: 'POST',
-        body: JSON.stringify({ query: GRAPHQL_ALL(username) })
+        body: JSON.stringify({ query: GRAPHQL_ALL(username, status) })
     });
 }
 export function getAllMyApprovingAbsences(username) {

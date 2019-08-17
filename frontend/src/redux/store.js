@@ -3,6 +3,7 @@ import thunk from 'redux-thunk';
 
 import UserReducer from './reducers/UserReducer';
 import TeamReducer from './reducers/TeamReducer';
+import AbsenceReducer from './reducers/AbsenceReducer';
 
 const initialState = {};
 
@@ -10,7 +11,8 @@ const middleware = [thunk];
 
 const reducers = combineReducers({
   user: UserReducer,
-  team: TeamReducer
+  team: TeamReducer,
+  absence:AbsenceReducer
 });
 
 const composeEnhancers =

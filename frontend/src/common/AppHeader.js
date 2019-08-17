@@ -19,7 +19,7 @@ class AppHeader extends Component {
         this.handleMenuClick = this.handleMenuClick.bind(this);   
     }
 
-    handleMenuClick({ key }) {
+    handleMenuClick({ item, key }) {
       if(key === "logout") {
         this.props.actLogout(this.props.history);
       }
@@ -93,6 +93,7 @@ class AppHeader extends Component {
                 className="app-menu"
                 mode="inline"
                 inlineCollapsed={true}
+                onClick={this.handleMenuClick}
                 selectedKeys={[this.props.location.pathname]}
                 style={{ lineHeight: '64px' }} >
                   {menuItems}

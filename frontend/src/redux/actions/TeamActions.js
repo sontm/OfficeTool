@@ -59,6 +59,22 @@ export const actTeamAddMemberToTeam = (info) => (dispatch) => {
     });
 }
 
+export const actTeamDeleteMember = (info) => (dispatch) => {
+    deleteMemberFromTeam(info.fSelectedTeam, info.username)
+    .then( response => {
+        console.log("Delete member DONE")
+        console.log(response.data.deleteMemberFromTeam)
+
+        dispatch({
+            type: TEAM_DEL_MEMBER_OK,
+            payload: response.data.deleteMemberFromTeam
+        });
+    }).catch(err => {
+        console.log("Add member Error")
+        console.log(err)
+    });
+}
+
 export const actTeamHandleSelectTeam = (teamID, username) => (dispatch) => {
     dispatch({
         type: TEAM_SELECT_TEAM,

@@ -34,6 +34,7 @@ import {
     type Mutation {
       createAbsence(request: CreateAbsenceInput): Absence!
       updateAbsenceStatus(request: UpdateAbsenceStatusInput): Absence!
+      deleteAbsence(id: String!): Absence!
     }
   
   

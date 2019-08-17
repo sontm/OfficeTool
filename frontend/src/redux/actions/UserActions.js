@@ -68,5 +68,5 @@ export const actLogout = (history) => (dispatch) => {
         type: USER_LOGOUT
     });
 
-    history.push("/");
+    history.push("/login");
 }

@@ -112,7 +112,35 @@ export default {
         console.log(error);
         throw error;
         }
-    }
+    },
+    deleteAbsence: async (parent, { id }, {user}, info) => {
+      //   if (!user) {
+      //     throw new AuthenticationError('[GROUP3] You are not authenticated!')
+      //   }
+  
+        console.log(" deleteAbsence*" + id)
+        const newObj = await Absence.findOne(
+            { 
+                "_id": id
+            }).populate().exec();
+        
+        console.log(newObj)
+        try {
+          const result = await new Promise((resolve, reject) => {
+              newObj.remove((err, res) => {
+                err ? reject(err) : resolve(res);
+              });
+          });
+
+          console.log ("-->>Absence Updated")
+          console.log (result)
+
+          return result;
+        } catch (error) {
+        console.log(error);
+        throw error;
+        }
+      }
   }
 };
 

@@ -46,6 +46,22 @@ export default function(state = initialState, action) {
                 teams: newTeams
             };
             return newState;
+        case TEAM_DEL_MEMBER_OK:
+            // Update Array of Team with new information
+            let newTeamInfo1 = action.payload;
+            let newTeams1 = [];
+            state.teams.forEach(element => {
+                if (element.id == newTeamInfo1.id) {
+                    newTeams1.push(newTeamInfo1);
+                } else {
+                    newTeams1.push(element);
+                }
+            })
+            //let newState = Object.assign({}, ...state);
+            return {
+                ...state,
+                teams: newTeams1
+            };
         case TEAM_SELECT_TEAM:
             // If curent selected team ID is null, Recomment Best Match team
             if (action.payload.teamID) {

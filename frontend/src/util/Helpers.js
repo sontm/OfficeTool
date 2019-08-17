@@ -111,7 +111,7 @@ export function getMatchLeaderOfUser(teams, username) {
 
     if (userIsLeader) {
         // TODO, return Group Leader Here
-        return "sontm";
+        return "admin";
     } else {
         // If is member, the Max Percent is the Assigned Leader
         return tempTeamAndLeader[""+ret];

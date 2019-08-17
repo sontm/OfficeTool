@@ -6,7 +6,8 @@ import { Modal, Button, Icon, Collapse, notification, Card,
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { actTeamGet,actTeamGetMembers, actTeamAddMemberToTeam, actTeamHandleSelectTeam } from '../redux/actions/TeamActions';
+import { actTeamGet,actTeamGetMembers, actTeamAddMemberToTeam, actTeamHandleSelectTeam,
+    actTeamDeleteMember } from '../redux/actions/TeamActions';
 
 import './TeamPage.css';
 
@@ -29,6 +30,27 @@ function mGetSelectedTeam(teams, currentTeamID) {
     }
     return null;
 }
+
+function mHasRightToEditTeam(team, currentUser) {
+    if (team && team.members && currentUser) {
+        for (var i = 0; i < team.members.length; i++) {
+            let element = team.members[i];
+            if (element.username == currentUser.username) {
+                if (element.role == "leader") {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Check if currentn user is admin
+    if (currentUser.username == "admin") {
+        // TODO, need to query in User table
+        return true;
+    }
+
+    return false;
+}
 class TeamPage extends Component {
     constructor(props) {
         super(props);
@@ -41,13 +63,12 @@ class TeamPage extends Component {
             isOpenModalEdit: false,
             isOpenModalAdd:false
         };
-        this.fetchTeams = this.fetchTeams.bind(this);
-        this.fetchMembers = this.fetchMembers.bind(this);
+
         this.handleMemberRoleChange = this.handleMemberRoleChange.bind(this);
         this.handleSelectTeamChange = this.handleSelectTeamChange.bind(this);
         this.handleSelectMemberChange = this.handleSelectMemberChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
-        this.handleCollapseOpen = this.handleCollapseOpen.bind(this)
+
         this.handlePercentChange = this.handlePercentChange.bind(this);
         this.handleRemoveMember = this.handleRemoveMember.bind(this);
         this.handleEditMember = this.handleEditMember.bind(this);
@@ -56,25 +77,29 @@ class TeamPage extends Component {
 
         this.handleAddMemberOpen = this.handleAddMemberOpen.bind(this)
         this.handleCancelAddMember = this.handleCancelAddMember.bind(this)
+
+        this.hasRightToEditTeam = false;
     }
-    fetchTeams() {
-        this.props.actTeamGet();
-    }
-    fetchMembers() {
-        this.props.actTeamGetMembers();  
-    }
-    
+
     componentDidMount() {
         console.log("****** DID MOUNT TEAMPAGE.js")
-        this.fetchTeams()
-        this.fetchMembers()
+        if (this.props.team.teams.length <= 0 ) {
+            console.log("  ****** Will actTeamGet")
+            this.props.actTeamGet();
+        }
+        if (this.props.team.members.length <= 0) {
+            this.props.actTeamGetMembers();  
+        }
     }
     componentDidUpdate() {
         // if (this.props.user.currentUser.username && !this.props.team.selectedTeamID) {
         //     console.log("******     Fucking TRY DID UPDATE TEAMPAGE.js:" + this.props.team.selectedTeamID)
         //     this.props.actTeamHandleSelectTeam(null, this.props.user.currentUser.username)
         // }
+
+        
     }
+
     handleMemberRoleChange(e) {
         this.setState({
             fMemberRole: e.target.value,
@@ -95,11 +120,7 @@ class TeamPage extends Component {
             fPercent: v,
         });
     }
-    handleCollapseOpen(key) {
-        this.setState({
-            collapseActiveKey: key
-        })
-    }
+
     handleOKEdit(e) {
         this.props.actTeamAddMemberToTeam({
             fSelectedTeam: this.props.team.selectedTeamID,
@@ -149,35 +170,10 @@ class TeamPage extends Component {
     handleRemoveMember(record, e) {
         e.preventDefault();
         console.log("Remove member:" + record.username + " from:" + this.props.team.selectedTeamID)
-        // deleteMemberFromTeam(this.state.fSelectedTeam, record.username)
-        // .then( response => {
-        //     console.log("Delete member DONE")
-        //     console.log(response.data.deleteMemberFromTeam)
-
-        //     // Update Array of Team with new information
-        //     let newTeamInfo = response.data.deleteMemberFromTeam;
-        //     let newTeams = [];
-        //     this.state.teams.forEach(element => {
-        //         if (element.id == newTeamInfo.id) {
-        //             newTeams.push(newTeamInfo);
-        //         } else {
-        //             newTeams.push(element);
-        //         }
-        //     })
-
-        //     this.setState({
-        //         fMemberRole: "member",
-        //         fSelectedMember:"",
-        //         fPercent: 100,
-        //         currentTeam: newTeamInfo,
-        //         teams: newTeams
-        //         //collapseActiveKey: 0
-        //     })
-
-        // }).catch(err => {
-        //     console.log("Add member Error")
-        //     console.log(err)
-        // });
+        this.props.actTeamDeleteMember({
+            fSelectedTeam: this.props.team.selectedTeamID,
+            username: record.username
+        })
     }
     handleSubmit(event) {
         event.preventDefault();
@@ -191,109 +187,7 @@ class TeamPage extends Component {
             isOpenModalAdd: false
         })
     }
-    render() {
-        console.log("Rendering")
-
-        const teams = this.renderTeamsList();
-
-        let tblData = [];
-        let columns = [];
-        let currentSelectTeam = mGetSelectedTeam(this.props.team.teams, this.props.team.selectedTeamID);
-        if (currentSelectTeam) {
-            console.log(currentSelectTeam.members)
-            if (currentSelectTeam.members && currentSelectTeam.members.length > 0) {
-                tblData = currentSelectTeam.members;
-
-                columns = [
-                    {
-                        title: 'UserName',
-                        dataIndex: 'username',
-                        defaultSortOrder: 'descend',
-                        sorter: (a, b) => a.username.localeCompare(b.username),
-                        sortDirections: ['descend', 'ascend'],
-                        width: 200,
-                    },
-                    {
-                        title: 'Percent',
-                        dataIndex: 'percent',
-                        defaultSortOrder: 'descend',
-                        sorter: (a, b) => a.percent - b.percent,
-                        sortDirections: ['descend', 'ascend'],
-                        width: 150,
-                    },
-                    {
-                        title: 'Role',
-                        dataIndex: 'role',
-                        defaultSortOrder: 'descend',
-                        sorter: (a, b) => a.role.localeCompare(b.role),
-                        sortDirections: ['descend', 'ascend'],
-                    },
-                    {
-                        title: 'Delete',
-                        key: 'x',
-                        render: (text, record) => (
-                            <span
-                                className="action-delete"
-                                onClick={(e) => { this.handleRemoveMember(record, e); }}>
-                              Delete
-                            </span>
-                        ),
-                        width: 100,
-                    },
-                    {
-                        title: 'Edit',
-                        key: 'e',
-                        render: (text, record) => (
-                            <span
-                                className="action-delete"
-                                onClick={(e) => { this.handleEditMember(record, e); }}>
-                              Edit
-                            </span>
-                        ),
-                        width: 100,
-                    },
-                ];
-            }
-        }
-
-        var btnAddMember;
-        if (currentSelectTeam) {
-            btnAddMember = 
-                <Button type="primary" 
-                    size="medium" onClick={this.handleAddMemberOpen}>
-                Add Member
-                </Button>;
-        }
-        return (
-            <React.Fragment>
-                <Card title="Team" extra={teams}>
-
-                {btnAddMember}
-                <br/>
-                <Table dataSource={tblData} pagination={false} size={"medium"}
-                    columns={columns} rowKey="username" scroll={{y: 400 }}/>
-                </Card>
-
-                <Modal
-                        title="Edit Member"
-                        visible={this.state.isOpenModalEdit}
-                        onOk={this.handleOKEdit}
-                        onCancel={this.handleCancelEdit}
-                        >
-                    {this.renderEditMember()}
-                </Modal>
-
-                <Modal
-                        title="Add New Member"
-                        visible={this.state.isOpenModalAdd}
-                        onOk={this.handleSubmit}
-                        onCancel={this.handleCancelAddMember}
-                        >
-                    {this.renderAddMember()}
-                </Modal>
-            </React.Fragment>
-        )
-    }
+    
     renderAddMember() {
         const members = this.renderMemberList();
         const roles = this.renderMemberRole();
@@ -395,6 +289,113 @@ class TeamPage extends Component {
         </Radio.Group>
         );
     }
+
+    render() {
+        console.log("Team Page Rendering")
+
+        const teams = this.renderTeamsList();
+
+        let tblData = [];
+        let columns = [];
+        let currentSelectTeam = mGetSelectedTeam(this.props.team.teams, this.props.team.selectedTeamID);
+        if (currentSelectTeam && this.props.user) {
+            this.hasRightToEditTeam = mHasRightToEditTeam(currentSelectTeam, this.props.user.currentUser);
+            console.log(":::: Right*" + this.hasRightToEditTeam + "," + currentSelectTeam.name)
+        }
+        if (currentSelectTeam) {
+
+            console.log(currentSelectTeam.members)
+            if (currentSelectTeam.members && currentSelectTeam.members.length > 0) {
+                tblData = currentSelectTeam.members;
+
+                columns = [
+                    {
+                        title: 'UserName',
+                        dataIndex: 'username',
+                        defaultSortOrder: 'descend',
+                        sorter: (a, b) => a.username.localeCompare(b.username),
+                        sortDirections: ['descend', 'ascend'],
+                        width: 200,
+                    },
+                    {
+                        title: 'Percent',
+                        dataIndex: 'percent',
+                        defaultSortOrder: 'descend',
+                        sorter: (a, b) => a.percent - b.percent,
+                        sortDirections: ['descend', 'ascend'],
+                        width: 200,
+                    },
+                    {
+                        title: 'Role',
+                        dataIndex: 'role',
+                        defaultSortOrder: 'descend',
+                        sorter: (a, b) => a.role.localeCompare(b.role),
+                        sortDirections: ['descend', 'ascend'],
+                    }];
+                var optional =[
+                    {
+                        title: 'Delete',
+                        key: 'x',
+                        render: (text, record) => (
+                            <Button type="danger" size="small"
+                                    onClick={(e) => { this.handleRemoveMember(record, e); }}>Delete</Button>
+                        ),
+                        width: 100,
+                    },
+                    {
+                        title: 'Edit',
+                        key: 'e',
+                        render: (text, record) => (
+                            <Button type="primary" size="small"
+                                        onClick={(e) => { this.handleEditMember(record, e); }}>Edit</Button>
+                        ),
+                        width: 100 ,
+                    },
+                ];
+                if (this.hasRightToEditTeam) {
+                    columns.push(...optional)
+                }
+            }
+        }
+
+        var btnAddMember;
+        if (currentSelectTeam && this.hasRightToEditTeam) {
+            btnAddMember = 
+                <Button type="primary" 
+                    size="medium" onClick={this.handleAddMemberOpen}>
+                Add Member
+                </Button>;
+        }
+        return (
+            <React.Fragment>
+                <Card title="Team" extra={teams}>
+
+                {btnAddMember}
+                <br/>
+                <Table dataSource={tblData} pagination={false} size={"medium"}
+                    columns={columns} rowKey="username" scroll={{y: 400 }}/>
+                </Card>
+
+                <Modal
+                        title="Edit Member"
+                        visible={this.state.isOpenModalEdit}
+                        onOk={this.handleOKEdit}
+                        onCancel={this.handleCancelEdit}
+                        >
+                    {this.renderEditMember()}
+                </Modal>
+
+                <Modal
+                        title="Add New Member"
+                        visible={this.state.isOpenModalAdd}
+                        onOk={this.handleSubmit}
+                        onCancel={this.handleCancelAddMember}
+                        >
+                    {this.renderAddMember()}
+                </Modal>
+            </React.Fragment>
+        )
+    }
 }
 
 const mapStateToProps = (state) => ({
@@ -405,7 +406,8 @@ const mapActionsToProps = {
     actTeamGet,
     actTeamGetMembers,
     actTeamAddMemberToTeam,
-    actTeamHandleSelectTeam
+    actTeamHandleSelectTeam,
+    actTeamDeleteMember
 };
 
 export default withRouter(connect(mapStateToProps,mapActionsToProps)(TeamPage));

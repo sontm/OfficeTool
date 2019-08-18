@@ -73,16 +73,12 @@ export default function(state = initialState, action) {
                 var bestMatchTeam = getMatchTeamIDOfUser(state.teams,
                     action.payload.username)
                 if (bestMatchTeam) {
+                    console.log("-----Found Best match:" + bestMatchTeam)
                     return {
                         ...state,
                         selectedTeamID: bestMatchTeam
                     };
-                } else  {
-                    return {
-                        ...state
-                    };
                 }
-
             }
             
         default:

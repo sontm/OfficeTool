@@ -5,9 +5,10 @@ import { Alert, DatePicker, Modal, Button, Icon, Collapse, notification, Card,
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import {  actAbsenceGetOfMembers, actAbsenceGetMine,actAbsenceGetMyApproving,
-    actRegisterNewAbsence, actAbsenceUpdateStatus, actAbsenceDelete} from '../redux/actions/AbsenceActions';
+    actRegisterNewAbsence, actAbsenceUpdateStatus, actAbsenceDelete, actAbsenceHandleSelectTeam} from '../redux/actions/AbsenceActions';
 import { actTeamGet,actTeamGetMembers, actTeamAddMemberToTeam, actTeamHandleSelectTeam,
     actTeamDeleteMember } from '../redux/actions/TeamActions';
+
 
 import './AbsencePage.css';
 
@@ -101,9 +102,7 @@ class AbsencePage extends Component {
             fRejectReason: "",
             fRejectID: "",
 
-            fSelectedTeam: "",
             fSelectedMonth: moment(new Date()),
-            currentTeam: null
         };
         this.handleSelectTeamChange = this.handleSelectTeamChange.bind(this);
         this.handleSelectMonth = this.handleSelectMonth.bind(this);
@@ -128,18 +127,47 @@ class AbsencePage extends Component {
         this.handleRejectReasonChange = this.handleRejectReasonChange.bind(this)
         this.clickOkRejectModel = this.clickOkRejectModel.bind(this)
         this.clickCancelRejectModel = this.clickCancelRejectModel.bind(this)
+
+        this.initialLoaded = false;
+        this.currentTeam = null
     }
 
     componentDidMount() {
         if (this.props.team.teams.length <= 0 ) {
             this.props.actTeamGet();
         }
-        if (this.props.user && this.props.user.currentUser) {
+    }
+    componentDidUpdate() {
+        if (this.props.user.currentUser && this.props.user.currentUser.username && 
+            this.initialLoaded == false) {
+
             this.props.actAbsenceGetMyApproving(this.props.user.currentUser.username)
-        }
-        if (this.props.user && this.props.user.currentUser) {
             this.props.actAbsenceGetMine(this.props.user.currentUser.username)
+            this.initialLoaded = true
         }
+
+        if (this.props.user.currentUser && this.props.user.currentUser.username && 
+                this.props.team.teams.length > 0 &&
+                (!this.props.absence.selectedTeamID || this.props.absence.selectedTeamID == "")) {
+            console.log("******     Fucking TRY DID UPDATE  ABSENCE PAGE.js:")
+            var bestMatchTeam = getMatchTeamIDOfUser(this.props.team.teams,
+                this.props.user.currentUser.username)
+            if (bestMatchTeam) {
+                this.props.actAbsenceHandleSelectTeam(bestMatchTeam)
+
+                let curSelectedTeam;
+                this.props.team.teams.forEach(element => {
+                    if (element.id == bestMatchTeam) {
+                        curSelectedTeam = element;
+                    }
+                })
+                if (curSelectedTeam) {
+                    this.props.actAbsenceGetOfMembers({members:curSelectedTeam.members, status:"APPROVED"})
+                }
+            }
+            
+        }
+        
     }
 
     // --------------------Form-----------------
@@ -184,10 +212,8 @@ class AbsencePage extends Component {
                 curSelectedTeam = element;
             }
         })
-        this.setState({
-            fSelectedTeam: v,
-            currentTeam: curSelectedTeam
-        });
+
+        this.props.actAbsenceHandleSelectTeam(v, null)
 
         this.props.actAbsenceGetOfMembers({members:curSelectedTeam.members, status:"APPROVED"})
         
@@ -239,7 +265,7 @@ class AbsencePage extends Component {
             () => {
                 console.log("CALL BACK OF APPROVe DONE")
                 // We need to reload Team absences
-                this.props.actAbsenceGetOfMembers({members:this.state.currentTeam.members, status:"APPROVED"})
+                this.props.actAbsenceGetOfMembers({members:this.currentTeam.members, status:"APPROVED"})
             }
         )
     }
@@ -342,7 +368,7 @@ class AbsencePage extends Component {
             showSearch
             onChange={this.handleSelectTeamChange}
             placeholder="To Team"
-            value={this.state.fSelectedTeam}
+            value={this.props.absence.selectedTeamID}
             >
             {views}
         </Select>
@@ -501,8 +527,8 @@ class AbsencePage extends Component {
     renderTeamAbsences() {
         let tblData = [];
         let columns = [];
-        if (this.state.currentTeam) {
-            if (this.state.currentTeam.members && this.state.currentTeam.members.length > 0) {
+        if (this.currentTeam) {
+            if (this.currentTeam.members && this.currentTeam.members.length > 0) {
                 var fromDate = new Date(this.state.fSelectedMonth._d.getFullYear(),
                     this.state.fSelectedMonth._d.getMonth(), 1);
                 var toDate = new Date(this.state.fSelectedMonth._d.getFullYear(), 
@@ -539,8 +565,8 @@ class AbsencePage extends Component {
                 // 2: AM absence
                 // 3: PM absence
                 var allAbsences = (this.props.absence && this.props.absence.absences)?this.props.absence.absences: [];
-                for (var i = 0; i < this.state.currentTeam.members.length; i++) {
-                    var element = this.state.currentTeam.members[i];
+                for (var i = 0; i < this.currentTeam.members.length; i++) {
+                    var element = this.currentTeam.members[i];
                     var rowData = {};
                     var absenceOfMember = allAbsences[element.username];
 
@@ -605,6 +631,19 @@ class AbsencePage extends Component {
 
     render() {
         console.log("Rendering Absence Page")
+        if (this.props.team.teams.length > 0 && this.props.absence.selectedTeamID && 
+                this.props.absence.selectedTeamID != "") {
+
+            let curSelectedTeam;
+            this.props.team.teams.forEach(element => {
+                if (element.id == this.props.absence.selectedTeamID) {
+                    curSelectedTeam = element;
+                }
+            })
+            this.currentTeam = curSelectedTeam
+        }
+        
+
         var renderApproving = "";
         if (this.props.absence && this.props.absence.myApprovingAbsences && this.props.absence.myApprovingAbsences.length > 0) {
             renderApproving = 
@@ -682,7 +721,7 @@ const mapStateToProps = (state) => ({
 });
 const mapActionsToProps = {
     actAbsenceGetOfMembers, actAbsenceGetMine,actAbsenceGetMyApproving,actRegisterNewAbsence,
-    actTeamGet, actAbsenceUpdateStatus, actAbsenceDelete
+    actTeamGet, actAbsenceUpdateStatus, actAbsenceDelete, actAbsenceHandleSelectTeam
 };
 
 export default withRouter(connect(mapStateToProps,mapActionsToProps)(AbsencePage));

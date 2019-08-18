@@ -92,12 +92,10 @@ class TeamPage extends Component {
         }
     }
     componentDidUpdate() {
-        // if (this.props.user.currentUser.username && !this.props.team.selectedTeamID) {
-        //     console.log("******     Fucking TRY DID UPDATE TEAMPAGE.js:" + this.props.team.selectedTeamID)
-        //     this.props.actTeamHandleSelectTeam(null, this.props.user.currentUser.username)
-        // }
-
-        
+        if (this.props.user.currentUser && this.props.user.currentUser.username && 
+                (!this.props.team.selectedTeamID || this.props.team.selectedTeamID == "")) {
+            this.props.actTeamHandleSelectTeam(null, this.props.user.currentUser.username)
+        }
     }
 
     handleMemberRoleChange(e) {

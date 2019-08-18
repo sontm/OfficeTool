@@ -1,7 +1,8 @@
 import {
     ABSENCE_GET_ALLUSERS_OK,ABSENCE_GET_MINE_OK,ABSENCE_GET_MYAPROVING_OK,ABSENCE_GET_ERR,
-    ABSENCE_ADD_OK, ABSENCE_DELETE_OK, ABSENCE_UPDATE_OK
+    ABSENCE_ADD_OK, ABSENCE_DELETE_OK, ABSENCE_UPDATE_OK, ABSENCE_SELECT_TEAM
   } from '../actions/AbsenceActions'
+
 
 const initialState = {
     absences: [],
@@ -69,6 +70,14 @@ export default function(state = initialState, action) {
                 ...state,
                 myApprovingAbsences: [...action.payload]
             };
+        case ABSENCE_SELECT_TEAM:
+            // If curent selected team ID is null, Recomment Best Match team
+            if (action.payload.teamID) {
+                return {
+                    ...state,
+                    selectedTeamID: action.payload.teamID
+                };
+            }
         default:
             return state;
     }

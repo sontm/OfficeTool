@@ -8,6 +8,7 @@ export const ABSENCE_DELETE_OK = 'ABSENCE_DELETE_OK';
 export const ABSENCE_UPDATE_OK = 'ABSENCE_UPDATE_OK';
 export const ABSENCE_GET_MYAPROVING_OK = 'ABSENCE_GET_MYAPROVING_OK';
 export const ABSENCE_GET_ERR = 'ABSENCE_GET_ERR';
+export const ABSENCE_SELECT_TEAM = 'ABSENCE_SELECT_TEAM'
 
 export const actAbsenceGetOfMembers = (info) => (dispatch) => {
 
@@ -117,4 +118,11 @@ export const actAbsenceDelete = (id) => (dispatch) => {
         console.log(err)
     });
     
+}
+
+export const actAbsenceHandleSelectTeam = (teamID, username) => (dispatch) => {
+    dispatch({
+        type: ABSENCE_SELECT_TEAM,
+        payload: {teamID: teamID, username:username}
+    });
 }
